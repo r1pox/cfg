@@ -2,29 +2,30 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Редактор JSON CFG</title>
+<title>Редактор JSON Offers</title>
 <style>
-  body { font-family: Arial, sans-serif; margin: 30px; background-color: #f5f5f5; }
-  h1 { text-align: center; }
-  input[type="file"] { margin-bottom: 20px; }
-  table { border-collapse: collapse; width: 100%; margin-bottom: 20px; background: #fff; }
-  table, th, td { border: 1px solid #aaa; }
-  th, td { padding: 8px; text-align: left; }
-  td input { width: 100px; border: none; text-align: right; background-color: #f0f0f0; }
-  button { padding: 10px 20px; margin-bottom: 20px; cursor: pointer; }
-  pre { background: #eee; padding: 10px; white-space: pre-wrap; }
+body { font-family: Arial, sans-serif; margin: 30px; background-color: #f5f5f5; }
+h1 { text-align: center; }
+input[type="file"] { margin-bottom: 20px; }
+table { border-collapse: collapse; width: 100%; margin-bottom: 20px; background: #fff; }
+table, th, td { border: 1px solid #aaa; }
+th, td { padding: 8px; text-align: left; }
+td input { width: 100px; border: none; text-align: right; background-color: #f0f0f0; }
+button { padding: 10px 20px; margin-bottom: 20px; cursor: pointer; }
+pre { background: #eee; padding: 10px; white-space: pre-wrap; }
 </style>
 </head>
 <body>
 
-<h1>Редактор JSON CFG</h1>
+<h1>Редактор JSON Offers</h1>
 <input type="file" id="fileInput" accept=".json"><br>
 
 <table id="jsonTable">
   <thead>
     <tr>
       <th>Название</th>
-      <th>Цена</th>
+      <th>Цена продажи (sell)</th>
+      <th>Цена покупки (buy)</th>
     </tr>
   </thead>
   <tbody></tbody>
@@ -41,6 +42,8 @@ const jsonTableBody = document.querySelector('#jsonTable tbody');
 const saveBtn = document.getElementById('saveBtn');
 const output = document.getElementById('output');
 
+let jsonData = null; // будем хранить весь JSON здесь
+
 fileInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -48,44 +51,61 @@ fileInput.addEventListener('change', (e) => {
   const reader = new FileReader();
   reader.onload = function(event) {
     try {
-      const data = JSON.parse(event.target.result);
-      parseJSON(data);
+      jsonData = JSON.parse(event.target.result);
+
+      if (!jsonData.Offers || !Array.isArray(jsonData.Offers)) {
+        alert('Ошибка: JSON не содержит массива Offers!');
+        return;
+      }
+
+      parseJSON(jsonData.Offers);
     } catch(err) {
       alert('Ошибка: неверный формат JSON!');
+      console.error(err);
     }
   };
   reader.readAsText(file);
 });
 
-function parseJSON(data) {
+function parseJSON(offers) {
   jsonTableBody.innerHTML = '';
-  data.forEach(item => {
+  offers.forEach((item, index) => {
     const row = document.createElement('tr');
 
+    // Название
     const nameCell = document.createElement('td');
     nameCell.textContent = item.name;
     row.appendChild(nameCell);
 
-    const priceCell = document.createElement('td');
-    const input = document.createElement('input');
-    input.type = 'number';
-    input.value = item.price;
-    priceCell.appendChild(input);
-    row.appendChild(priceCell);
+    // Цена продажи
+    const sellCell = document.createElement('td');
+    const sellInput = document.createElement('input');
+    sellInput.type = 'number';
+    sellInput.value = item.sell || 0;
+    sellCell.appendChild(sellInput);
+    row.appendChild(sellCell);
+
+    // Цена покупки
+    const buyCell = document.createElement('td');
+    const buyInput = document.createElement('input');
+    buyInput.type = 'number';
+    buyInput.value = item.buy || 0;
+    buyCell.appendChild(buyInput);
+    row.appendChild(buyCell);
 
     jsonTableBody.appendChild(row);
   });
 }
 
 saveBtn.addEventListener('click', () => {
-  const data = [];
-  jsonTableBody.querySelectorAll('tr').forEach(row => {
-    const name = row.cells[0].textContent;
-    const price = Number(row.cells[1].querySelector('input').value);
-    data.push({ name, price });
+  if (!jsonData) return;
+
+  jsonTableBody.querySelectorAll('tr').forEach((row, index) => {
+    jsonData.Offers[index].sell = Number(row.cells[1].querySelector('input').value);
+    jsonData.Offers[index].buy = Number(row.cells[2].querySelector('input').value);
   });
 
-  const jsonText = JSON.stringify(data, null, 2); // красиво форматируем
+  const jsonText = JSON.stringify(jsonData, null, 2);
   output.textContent = jsonText;
 
   // Скачать файл
