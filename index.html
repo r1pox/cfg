@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Редактор CFG</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 30px;
+    background-color: #f5f5f5;
+  }
+  h1 {
+    text-align: center;
+  }
+  input[type="file"] {
+    margin-bottom: 20px;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 20px;
+    background: #fff;
+  }
+  table, th, td {
+    border: 1px solid #aaa;
+  }
+  th, td {
+    padding: 8px;
+    text-align: left;
+  }
+  td input {
+    width: 80px;
+    border: none;
+    text-align: right;
+    background-color: #f0f0f0;
+  }
+  button {
+    padding: 10px 20px;
+    margin-bottom: 20px;
+    cursor: pointer;
+  }
+  pre {
+    background: #eee;
+    padding: 10px;
+    white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+
+<h1>Редактор CFG</h1>
+<input type="file" id="fileInput" accept=".cfg"><br>
+
+<table id="cfgTable">
+  <thead>
+    <tr>
+      <th>Название</th>
+      <th>Цена</th>
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+
+<button id="saveBtn">Сохранить</button>
+
+<h2>Сгенерированный CFG:</h2>
+<pre id="output"></pre>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+const cfgTableBody = document.querySelector('#cfgTable tbody');
+const saveBtn = document.getElementById('saveBtn');
+const output = document.getElementById('output');
+
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    const content = event.target.result;
+    parseCFG(content);
+  };
+  reader.readAsText(file);
+});
+
+function parseCFG(text) {
+  cfgTableBody.innerHTML = '';
+  const lines = text.split('\n');
+  lines.forEach(line => {
+    if (line.trim() === '') return;
+    const [name, price] = line.split('=');
+    const row = document.createElement('tr');
+
+    const nameCell = document.createElement('td');
+    nameCell.textContent = name;
+    row.appendChild(nameCell);
+
+    const priceCell = document.createElement('td');
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.value = price;
+    priceCell.appendChild(input);
+    row.appendChild(priceCell);
+
+    cfgTableBody.appendChild(row);
+  });
+}
+
+saveBtn.addEventListener('click', () => {
+  let cfgText = '';
+  cfgTableBody.querySelectorAll('tr').forEach(row => {
+    const name = row.cells[0].textContent;
+    const price = row.cells[1].querySelector('input').value;
+    cfgText += `${name}=${price}\n`;
+  });
+  output.textContent = cfgText;
+
+  const blob = new Blob([cfgText], {type: 'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'edited.cfg';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+</script>
+
+</body>
+</html>
