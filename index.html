@@ -2,74 +2,42 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Редактор CFG</title>
+<title>Редактор JSON CFG</title>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    margin: 30px;
-    background-color: #f5f5f5;
-  }
-  h1 {
-    text-align: center;
-  }
-  input[type="file"] {
-    margin-bottom: 20px;
-  }
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    margin-bottom: 20px;
-    background: #fff;
-  }
-  table, th, td {
-    border: 1px solid #aaa;
-  }
-  th, td {
-    padding: 8px;
-    text-align: left;
-  }
-  td input {
-    width: 80px;
-    border: none;
-    text-align: right;
-    background-color: #f0f0f0;
-  }
-  button {
-    padding: 10px 20px;
-    margin-bottom: 20px;
-    cursor: pointer;
-  }
-  pre {
-    background: #eee;
-    padding: 10px;
-    white-space: pre-wrap;
-  }
+  body { font-family: Arial, sans-serif; margin: 30px; background-color: #f5f5f5; }
+  h1 { text-align: center; }
+  input[type="file"] { margin-bottom: 20px; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 20px; background: #fff; }
+  table, th, td { border: 1px solid #aaa; }
+  th, td { padding: 8px; text-align: left; }
+  td input { width: 100px; border: none; text-align: right; background-color: #f0f0f0; }
+  button { padding: 10px 20px; margin-bottom: 20px; cursor: pointer; }
+  pre { background: #eee; padding: 10px; white-space: pre-wrap; }
 </style>
 </head>
 <body>
 
-<h1>Редактор CFG</h1>
-<input type="file" id="fileInput" accept=".cfg"><br>
+<h1>Редактор JSON CFG</h1>
+<input type="file" id="fileInput" accept=".json"><br>
 
-<table id="cfgTable">
+<table id="jsonTable">
   <thead>
     <tr>
       <th>Название</th>
       <th>Цена</th>
     </tr>
   </thead>
-  <tbody>
-  </tbody>
+  <tbody></tbody>
 </table>
 
 <button id="saveBtn">Сохранить</button>
 
-<h2>Сгенерированный CFG:</h2>
+<h2>Сгенерированный JSON:</h2>
 <pre id="output"></pre>
 
 <script>
 const fileInput = document.getElementById('fileInput');
-const cfgTableBody = document.querySelector('#cfgTable tbody');
+const jsonTableBody = document.querySelector('#jsonTable tbody');
 const saveBtn = document.getElementById('saveBtn');
 const output = document.getElementById('output');
 
@@ -79,49 +47,53 @@ fileInput.addEventListener('change', (e) => {
 
   const reader = new FileReader();
   reader.onload = function(event) {
-    const content = event.target.result;
-    parseCFG(content);
+    try {
+      const data = JSON.parse(event.target.result);
+      parseJSON(data);
+    } catch(err) {
+      alert('Ошибка: неверный формат JSON!');
+    }
   };
   reader.readAsText(file);
 });
 
-function parseCFG(text) {
-  cfgTableBody.innerHTML = '';
-  const lines = text.split('\n');
-  lines.forEach(line => {
-    if (line.trim() === '') return;
-    const [name, price] = line.split('=');
+function parseJSON(data) {
+  jsonTableBody.innerHTML = '';
+  data.forEach(item => {
     const row = document.createElement('tr');
 
     const nameCell = document.createElement('td');
-    nameCell.textContent = name;
+    nameCell.textContent = item.name;
     row.appendChild(nameCell);
 
     const priceCell = document.createElement('td');
     const input = document.createElement('input');
     input.type = 'number';
-    input.value = price;
+    input.value = item.price;
     priceCell.appendChild(input);
     row.appendChild(priceCell);
 
-    cfgTableBody.appendChild(row);
+    jsonTableBody.appendChild(row);
   });
 }
 
 saveBtn.addEventListener('click', () => {
-  let cfgText = '';
-  cfgTableBody.querySelectorAll('tr').forEach(row => {
+  const data = [];
+  jsonTableBody.querySelectorAll('tr').forEach(row => {
     const name = row.cells[0].textContent;
-    const price = row.cells[1].querySelector('input').value;
-    cfgText += `${name}=${price}\n`;
+    const price = Number(row.cells[1].querySelector('input').value);
+    data.push({ name, price });
   });
-  output.textContent = cfgText;
 
-  const blob = new Blob([cfgText], {type: 'text/plain'});
+  const jsonText = JSON.stringify(data, null, 2); // красиво форматируем
+  output.textContent = jsonText;
+
+  // Скачать файл
+  const blob = new Blob([jsonText], {type: 'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'edited.cfg';
+  a.download = 'edited.json';
   a.click();
   URL.revokeObjectURL(url);
 });
